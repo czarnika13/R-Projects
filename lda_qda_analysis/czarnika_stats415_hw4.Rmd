@@ -1,0 +1,263 @@
+---
+title: "czarnika_stats415_hw4"
+output: word_document
+---
+##1)
+```{r, echo=FALSE}
+library(MASS)
+x <- c(-3, -2, 0, 1, -1, 2, 3, 4, 5)
+y <- c(-1, -1, -1, -1, 1, 1, 1, 1, 1)
+train = data.frame(x,y)
+
+lda.fit = lda(y~x,data=train)
+qda.fit = qda(y~x,data=train)
+lda.fit
+qda.fit
+```
+
+###1a) Parameters for LDA
+
+π = Prior Prob = (0.4444444, 0.5555556)
+
+µ = Group Means = (-1.0, 2.6)
+
+###1b) LDA Discriminant Functions
+x * µk/σ^2 - µk/2σ^2 + log πk
+
+x * 2.6/1  - (2.6/2) + log(0.556)
+
+x * -1/1   - (-1/2)  + log(0.444)
+
+###1a) Parameters for QDA
+π = Prior Prob = (0.4444444, 0.5555556)
+
+µ = Group Means = (-1.0, 2.6)
+
+###1b) QDA Discriminant Function
+
+-1/2 * log(|Σk|) - 1/2 * (x - µk)^T * Σk^-1 * (x-µk) + log(πk)
+
+-1/2 * log(|Σk|) - 1/2 * (x - -1)^T  * Σk^-1 * (x - -1)  + log(0.444)
+
+-1/2 * log(|Σk|) - 1/2 * (x - 2.6)^T * Σk^-1 * (x - 2.6) + log(0.556)
+
+
+###1c) Compute the training errors using LDA and QDA respectively (i.e., the misclassification error when applying your classifier to the training data)
+
+```{r}
+lda.pred=predict(lda.fit,train)
+
+lda.class=lda.pred$class
+table(lda.class,train$y)
+```
+
+7 correct, 2 incorrect
+
+2 correct / 9 overall = 0.22% Training error
+
+```{r}
+qda.pred=predict(qda.fit,train)
+
+qda.class=qda.pred$class
+table(qda.class,train$y)
+```
+
+7 correct, 2 incorrect
+
+2 correct / 9 overall = 0.22% Training error
+
+###1d) Given a test set of (x, y) pairs, what are the test errors?
+```{r, echo=FALSE}
+x <- c(-1.5, -1, 0, 1, 0.5, 1, 2.5, 5)
+y <- c(-1, -1, -1, -1, 1, 1, 1, 1)
+test = data.frame(x,y)
+```
+```{r}
+lda.pred=predict(lda.fit,test)
+
+lda.class=lda.pred$class
+table(lda.class,test$y)
+```
+
+6 correct, 2 incorrect
+
+2 correct / 8 overall = 0.25% Testing error
+
+```{r}
+qda.pred=predict(qda.fit,test)
+
+qda.class=qda.pred$class
+table(qda.class,test$y)
+```
+
+6 correct, 2 incorrect
+
+2 correct / 8 overall = 0.25% Testing error
+
+###1e) Which is more suitable for this (training) data set, LDA or QDA? Justify your answer.
+
+I believe that the LDA for this training data set. Both resulted in the same predicitions for the training data, so neither has shown to have a lower error. However, when the sample size is as small as this one is, the LDA analysis is the prefered method. The book tells us that LDA tends to be a better bet because varience is so volatile in QDA with such a small data set.
+
+
+##2)
+
+### 2a) Create a binary variable, mpg01, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median
+```{r}
+library(ISLR)
+attach(Auto)
+auto = Auto
+med = median(Auto$mpg)
+auto$mpg01 = ifelse(auto$mpg <= med,0,1)
+```
+
+### 2b) Explore the data graphically in order to investigate the association between mpg01 and the other features
+
+```{r}
+plot(auto$mpg01 ~ auto$weight + auto$horsepower + auto$displacement + auto$cylinders)
+
+```
+
+
+### 2c) Split the data into a training set and a test set
+
+```{r}
+smp_size <- floor(0.70 * nrow(auto))
+
+## set the seed to make your partition reproductible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(auto)), size = smp_size)
+
+train <- auto[train_ind, ]
+test <- auto[-train_ind, ]
+```
+
+### 2d) Perform LDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+```{r}
+lda.fit = lda(mpg01 ~ weight + horsepower + displacement + cylinders, data=train)
+lda.fit
+
+lda.pred=predict(lda.fit,test)
+
+lda.class=lda.pred$class
+table(lda.class,test$mpg01)
+```
+104 correct, 14 incorrect
+
+14 incorrect / 118 overall = 0.12% Testing error
+
+
+### 2e) Perform QDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+
+```{r}
+qda.fit = qda(mpg01 ~ weight + horsepower + displacement + cylinders, data=train)
+qda.fit
+
+qda.pred=predict(qda.fit,test)
+
+qda.class=qda.pred$class
+table(qda.class,test$mpg01)
+```
+106 correct, 12 incorrect
+
+12 incorrect / 118 overall = 0.10% Testing error
+
+
+### 2f) Perform logistic regression on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+```{r}
+glm.fit = glm(mpg01 ~ weight + horsepower + displacement + cylinders, data=train)
+summary(glm.fit)
+
+glm.probs=predict(glm.fit,test)
+
+glm.pred=rep(0,118)
+glm.pred[glm.probs>.5]=1
+
+table(glm.pred,test$mpg01)
+```
+104 correct, 14 incorrect
+12 incorrect / 118 overall = 0.12% Testing Error
+
+### 2g) Perform KNN on the training data, with several values of K, in order to predict mpg01. Use only the variables that seemed most associated with mpg01 in (b). What test errors do you obtain? Which value of K seems to perform the best on this data set?
+
+```{r}
+library(class)
+train.X=cbind(train$weight, train$horsepower, train$displacement, train$cylinders)
+test.X=cbind(test$weight, test$horsepower, test$displacement, test$cylinders)
+train.mpg01=train$mpg01
+
+set.seed(1)
+knn.pred=knn(train.X,test.X,train.mpg01 ,k=1)
+table(knn.pred, test$mpg01)
+
+```
+k = 1
+101 correct, 17 incorrect
+17 incorrect / 118 overall = 0.14% Testing Error
+
+
+```{r}
+library(class)
+train.X=cbind(train$weight, train$horsepower, train$displacement, train$cylinders)
+test.X=cbind(test$weight, test$horsepower, test$displacement, test$cylinders)
+train.mpg01=train$mpg01
+
+set.seed(1)
+knn.pred=knn(train.X,test.X,train.mpg01 ,k=2)
+table(knn.pred, test$mpg01)
+
+```
+
+k = 2
+99 correct, 19 incorrect
+19 incorrect / 118 overall = 0.16% Testing Error
+
+```{r}
+library(class)
+train.X=cbind(train$weight, train$horsepower, train$displacement, train$cylinders)
+test.X=cbind(test$weight, test$horsepower, test$displacement, test$cylinders)
+train.mpg01=train$mpg01
+
+set.seed(1)
+knn.pred=knn(train.X,test.X,train.mpg01 ,k=3)
+table(knn.pred, test$mpg01)
+
+```
+
+k = 3
+114 correct, 14 incorrect
+14 incorrect / 118 overall = 0.12% Testing Error
+
+```{r}
+library(class)
+train.X=cbind(train$weight, train$horsepower, train$displacement, train$cylinders)
+test.X=cbind(test$weight, test$horsepower, test$displacement, test$cylinders)
+train.mpg01=train$mpg01
+
+set.seed(1)
+knn.pred=knn(train.X,test.X,train.mpg01 ,k=4)
+table(knn.pred, test$mpg01)
+
+```
+
+k = 4
+105 correct, 13 incorrect
+13 incorrect / 118 overall = 0.11% Testing Error
+
+```{r}
+library(class)
+train.X=cbind(train$weight, train$horsepower, train$displacement, train$cylinders)
+test.X=cbind(test$weight, test$horsepower, test$displacement, test$cylinders)
+train.mpg01=train$mpg01
+
+set.seed(1)
+knn.pred=knn(train.X,test.X,train.mpg01 ,k=5)
+table(knn.pred, test$mpg01)
+
+```
+
+k = 5
+101 correct, 17 incorrect
+17 incorrect / 118 overall = 0.14% Testing Error
